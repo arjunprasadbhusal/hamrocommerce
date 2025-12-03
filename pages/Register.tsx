@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '../src/constant/api';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const Register = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrors({});
     setMessage('');
@@ -49,7 +50,7 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/register', {
+      const response = await fetch(API_ENDPOINTS.REGISTER, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,10 +68,10 @@ const Register = () => {
       const data = await response.json();
 
       if (data.success) {
-        setMessage('Registration successful! Redirecting to login...');
+        setMessage('Registration successful! Redirecting...');
         setTimeout(() => {
-          navigate('/login');
-        }, 2000);
+          navigate('/');
+        }, 1500);
       } else {
         if (data.errors) {
           setErrors(data.errors);
@@ -79,7 +80,7 @@ const Register = () => {
       }
     } catch (error) {
       console.error('Registration error:', error);
-      setMessage('An error occurred. Please try again.');
+      setMessage('Cannot connect to server. Please make sure the backend is running.');
     } finally {
       setLoading(false);
     }

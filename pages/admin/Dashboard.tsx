@@ -38,7 +38,7 @@ const Dashboard = () => {
 
   const fetchDashboardData = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/dashboard', {
+      const response = await fetch('http://192.168.1.98:8000/api/v1/dashboard', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
@@ -77,7 +77,7 @@ const Dashboard = () => {
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
       
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto ml-64">
         <div className="p-8">
           <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
 

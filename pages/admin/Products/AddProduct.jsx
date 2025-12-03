@@ -1,0 +1,206 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import Sidebar from '../Sidebar'
+import { API_ENDPOINTS } from '../../../src/constant/api'
+
+const initialFormData = {
+  name: '',
+  description: '',
+  price: '',
+  stock: '',
+  category_id: '',
+  brand_id: '',
+  photopath: null,
+}
+
+const initialNotification = { show: false, message: '', type: 'success' }
+
+export default function AddProduct() {
+  const [formData, setFormData] = useState(initialFormData)
+  const [photoPreview, setPhotoPreview] = useState(null)
+  const [categories, setCategories] = useState([])
+  const [brands, setBrands] = useState([])
+  const [submitting, setSubmitting] = useState(false)
+  const [notification, setNotification] = useState(initialNotification)
+
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    fetchCategoriesAndBrands()
+  }, [])
+
+  const fetchCategoriesAndBrands = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const [catResponse, brandResponse] = await Promise.all([
+        fetch(API_ENDPOINTS.CATEGORIES, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+        }),
+        fetch(API_ENDPOINTS.BRANDS, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+        })
+      ])
+      const catData = await catResponse.json()
+      const brandData = await brandResponse.json()
+      setCategories(catData.data || [])
+      setBrands(brandData.data || [])
+    } catch (err) {
+      console.error('Failed to load categories/brands:', err)
+    }
+  }
+
+  useEffect(() => {
+    if (notification.show) {
+      const timer = setTimeout(() => {
+        setNotification(initialNotification)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [notification.show])
+
+  const handleChange = (event) => {
+    const { name, value, files } = event.target
+
+    if (name === "photopath") {
+      const file = files[0]
+      if (file && file.size > 2048 * 1024) {
+        setNotification({ show: true, message: 'Image must be less than 2MB', type: 'error' })
+        return
+      }
+      setFormData((prev) => ({ ...prev, photopath: file }))
+      setPhotoPreview(file ? URL.createObjectURL(file) : null)
+      return
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+
+    if (!formData.name.trim()) {
+      setNotification({ show: true, message: 'Product name is required', type: 'error' })
+      return
+    }
+
+    if (!formData.price || formData.price < 0) {
+      setNotification({ show: true, message: 'Valid price is required', type: 'error' })
+      return
+    }
+
+    if (!formData.stock || formData.stock < 0) {
+      setNotification({ show: true, message: 'Valid stock is required', type: 'error' })
+      return
+    }
+
+    setSubmitting(true)
+
+    try {
+      const token = localStorage.getItem('token')
+      const form = new FormData()
+      form.append("name", formData.name)
+      form.append("description", formData.description || '')
+      form.append("price", formData.price)
+      form.append("stock", formData.stock)
+      if (formData.category_id) form.append("category_id", formData.category_id)
+      if (formData.brand_id) form.append("brand_id", formData.brand_id)
+      if (formData.photopath) form.append("photopath", formData.photopath)
+
+      const response = await fetch(API_ENDPOINTS.PRODUCTS, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+        body: form
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        navigate('/admin/products', {
+          state: { message: 'Product added successfully!', type: 'success' },
+        })
+      } else {
+        throw new Error(data.message || 'Failed to add product')
+      }
+    } catch (err) {
+      setNotification({ show: true, message: err.message || 'Failed to add product', type: 'error' })
+      console.error(err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleCancel = () => navigate('/admin/products')
+
+  return (
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar />
+      <div className="flex-1 overflow-auto ml-64 p-8">
+        {notification.show && (
+          <div className={`mb-4 p-4 rounded ${notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+            {notification.message}
+          </div>
+        )}
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-2xl font-bold mb-6">Add New Product</h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Product Name *</label>
+                <input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Price *</label>
+                <input type="number" name="price" value={formData.price} onChange={handleChange} required min="0" step="0.01" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Stock *</label>
+                <input type="number" name="stock" value={formData.stock} onChange={handleChange} required min="0" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Category</label>
+                <select name="category_id" value={formData.category_id} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <option value="">Select Category</option>
+                  {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Brand</label>
+                <select name="brand_id" value={formData.brand_id} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <option value="">Select Brand</option>
+                  {brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Product Image (Max 2MB)</label>
+                <input type="file" name="photopath" accept="image/*" onChange={handleChange} className="w-full px-3 py-2 border rounded-lg" />
+                {photoPreview && <img src={photoPreview} alt="Preview" className="mt-2 w-20 h-20 object-cover rounded" />}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Description</label>
+              <textarea name="description" value={formData.description} onChange={handleChange} rows="3" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button type="button" onClick={handleCancel} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+              <button type="submit" disabled={submitting} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                {submitting ? 'Adding...' : 'Add Product'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}

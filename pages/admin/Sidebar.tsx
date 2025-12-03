@@ -1,4 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { API_ENDPOINTS } from '../../src/constant/api';
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -8,7 +9,7 @@ const Sidebar = () => {
     const token = localStorage.getItem('token');
     
     try {
-      await fetch('http://localhost:8000/api/v1/logout', {
+      await fetch(API_ENDPOINTS.LOGOUT, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -90,7 +91,7 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="bg-gray-900 text-white w-64 min-h-screen flex flex-col">
+    <div className="bg-gray-900 text-white w-64 min-h-screen flex flex-col fixed left-0 top-0 bottom-0 overflow-y-auto">
       {/* Logo */}
       <div className="p-6 border-b border-gray-700">
         <h1 className="text-2xl font-bold">Admin Panel</h1>
