@@ -3,7 +3,7 @@ import { useCart } from '../context/CartContext';
 import { Trash2, Plus, Minus, ArrowRight, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
-const Cart: React.FC = () => {
+const Cart = () => {
   const { cart, removeFromCart, updateQuantity, cartTotal, clearCart } = useCart();
   const navigate = useNavigate();
 
@@ -38,14 +38,23 @@ const Cart: React.FC = () => {
             <div key={item.id} className="flex gap-4 md:gap-6 bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               {/* Fixed size image for mobile responsiveness */}
               <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0">
-                 <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                 <img 
+                   src={item.photo_url || item.image || '/images/placeholder.jpg'} 
+                   alt={item.name} 
+                   className="w-full h-full object-cover"
+                   onError={(e) => {
+                     e.target.src = '/images/placeholder.jpg';
+                   }}
+                 />
               </div>
               
               <div className="flex-1 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start">
                     <div>
-                        <span className="text-[10px] md:text-xs font-semibold text-red-600 uppercase tracking-wider">{item.category}</span>
+                        <span className="text-[10px] md:text-xs font-semibold text-red-600 uppercase tracking-wider">
+                          {item.category?.name || item.category || 'Product'}
+                        </span>
                         <h3 className="font-bold text-base md:text-lg text-slate-900 mt-1 line-clamp-2">{item.name}</h3>
                     </div>
                     <button 
@@ -58,7 +67,19 @@ const Cart: React.FC = () => {
                 </div>
                 
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between mt-2 md:mt-4 gap-3 sm:gap-0">
-                  <div className="font-bold text-lg md:text-xl text-slate-900">NPR {(item.price * item.quantity).toLocaleString()} <span className="text-xs font-normal text-slate-400 block">NPR {item.price.toLocaleString()} / each</span></div>
+                  <div className="font-bold text-lg md:text-xl text-slate-900">
+                    NPR {(parseFloat(item.price) * item.quantity).toLocaleString()} 
+                    <span className="text-xs font-normal text-slate-400 block">
+                      NPR {parseFloat(item.price).toLocaleString()} / each
+                    </span>
+                    {item.stock !== undefined && (
+                      <span className={`text-xs font-semibold block mt-1 ${
+                        item.quantity >= item.stock ? 'text-red-600' : 'text-gray-500'
+                      }`}>
+                        {item.quantity >= item.stock ? `Max stock reached (${item.stock})` : `${item.stock} available`}
+                      </span>
+                    )}
+                  </div>
                   
                   <div className="flex items-center gap-3 bg-slate-50 rounded-lg p-1 border border-slate-100 w-max">
                     <button 
@@ -71,7 +92,9 @@ const Cart: React.FC = () => {
                     <span className="text-sm font-bold w-6 text-center">{item.quantity}</span>
                     <button 
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm hover:text-red-600"
+                      className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={item.stock !== undefined && item.quantity >= item.stock}
+                      title={item.stock !== undefined && item.quantity >= item.stock ? `Only ${item.stock} units available` : ''}
                     >
                       <Plus size={14} />
                     </button>

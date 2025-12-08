@@ -38,7 +38,7 @@ const Dashboard = () => {
 
   const fetchDashboardData = async (token: string) => {
     try {
-      const response = await fetch('http://192.168.1.98:8000/api/v1/dashboard', {
+      const response = await fetch('http://192.168.100.91:8000/api/v1/dashboard', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',

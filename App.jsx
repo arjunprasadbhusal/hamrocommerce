@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import Layout from './components/Layout';
 import Home from './pages/Home';
@@ -24,6 +24,8 @@ import AddCategory from './pages/admin/categories/AddCategory';
 import BrandList from './pages/admin/brands/BrandList';
 import AddBrand from './pages/admin/brands/Addbrand';
 import EditBrand from './pages/admin/brands/EditBrand';
+import OrderList from './pages/admin/orders/OrderList';
+import OrderInformation from './pages/admin/orders/OrderInformation';
 
 import AIChatAssistant from './components/AIChatAssistant';
 
@@ -61,6 +63,9 @@ const App = () => {
           <Route path="/admin/brands" element={<BrandList />} />
           <Route path="/admin/brands/add" element={<AddBrand />} />
           <Route path="/admin/brands/:id/edit" element={<EditBrand />} />
+
+          <Route path="/admin/orders" element={<OrderList />} />
+          <Route path="/admin/orders/:id" element={<OrderInformation />} />
         </Routes>
         {/* Floating AI Assistant available on all pages */}
         <AIChatAssistant />

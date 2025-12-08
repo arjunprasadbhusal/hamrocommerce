@@ -2,15 +2,20 @@ export interface Product {
   id: number;
   name: string;
   price: number;
-  category: string;
-  image: string;
-  shortDescription: string;
-  rating: number;
-  reviews: number;
+  category: string | any;
+  brand?: any;
+  image?: string;
+  photo_url?: string;
+  shortDescription?: string;
+  description?: string;
+  rating?: number;
+  reviews?: number;
+  stock?: number;
 }
 
 export interface CartItem extends Product {
   quantity: number;
+  cartId?: number; // Backend cart ID for deletion
 }
 
 export interface ChatMessage {

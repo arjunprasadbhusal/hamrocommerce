@@ -1,35 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ShoppingBag, Star, Share2, ArrowLeft, Copy, Sparkles, Check, Truck, Shield } from 'lucide-react';
-import { PRODUCTS } from '../constants';
 import { useCart } from '../context/CartContext';
 import { generateProductDescription, generateSocialMediaAd } from '../services/geminiService';
 import ProductCard from '../components/ProductCard';
+import { API_ENDPOINTS } from '../src/constant/api';
 
-const ProductDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const { addToCart } = useCart();
-  const product = PRODUCTS.find(p => p.id === Number(id));
+const ProductDetail = () => {
+  const { id } = useParams();
+  const { addToCart, cart } = useCart();
+  const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [aiDescription, setAiDescription] = useState<string>('');
-  const [adCopy, setAdCopy] = useState<string>('');
+  const [aiDescription, setAiDescription] = useState('');
+  const [adCopy, setAdCopy] = useState('');
   const [loadingDesc, setLoadingDesc] = useState(false);
   const [loadingAd, setLoadingAd] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    fetchProductDetail();
   }, [id]);
+
+  const fetchProductDetail = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(API_ENDPOINTS.PRODUCT_BY_ID(id));
+      const result = await response.json();
+      const productData = result.data || result;
+      setProduct(productData);
+
+      // Fetch related products from same category
+      const productsResponse = await fetch(API_ENDPOINTS.PRODUCTS);
+      const productsResult = await productsResponse.json();
+      const allProducts = productsResult.data || productsResult;
+      const related = allProducts.filter(p => 
+        p.category_id === productData.category_id && p.id !== productData.id
+      ).slice(0, 4);
+      
+      // Fill with other products if not enough in category
+      if (related.length < 4) {
+        const others = allProducts.filter(p => 
+          p.category_id !== productData.category_id && p.id !== productData.id
+        ).slice(0, 4 - related.length);
+        related.push(...others);
+      }
+      
+      setRelatedProducts(related);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="p-24 text-center">Loading product details...</div>;
+  }
 
   if (!product) {
     return <div className="p-24 text-center">Product not found. <Link to="/shop" className="text-red-600 font-bold hover:underline">Return to shop</Link></div>;
-  }
-
-  // Related products logic (simple mock)
-  const relatedProducts = PRODUCTS.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
-  if (relatedProducts.length < 4) {
-      // fill with others if not enough in category
-      const others = PRODUCTS.filter(p => p.category !== product.category && p.id !== product.id).slice(0, 4 - relatedProducts.length);
-      relatedProducts.push(...others);
   }
 
   const handleGenerateDescription = async () => {
@@ -46,6 +77,29 @@ const ProductDetail: React.FC = () => {
     setLoadingAd(false);
   }
 
+  const handleAddToCart = async () => {
+    try {
+      // Refetch product to get latest stock
+      const response = await fetch(API_ENDPOINTS.PRODUCT_BY_ID(id));
+      const result = await response.json();
+      const freshProduct = result.data || result;
+      
+      // Update local product state with fresh data
+      setProduct(freshProduct);
+      
+      // Add to cart with fresh stock data
+      await addToCart(freshProduct);
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      // Fallback to current product if fetch fails
+      await addToCart(product);
+    }
+  };
+
+  // Calculate available stock considering cart quantity
+  const cartItem = cart.find(item => item.id === product?.id);
+  const availableStock = product ? product.stock - (cartItem?.quantity || 0) : 0;
+
   return (
     <div className="bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -57,12 +111,26 @@ const ProductDetail: React.FC = () => {
           {/* Image */}
           <div className="space-y-4">
               <div className="bg-gray-50 rounded-3xl overflow-hidden aspect-square shadow-sm border border-gray-100">
-                <img src={product.image} alt={product.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                <img 
+                  src={product.photo_url || '/images/placeholder.jpg'} 
+                  alt={product.name} 
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                  onError={(e) => {
+                    e.target.src = '/images/placeholder.jpg';
+                  }}
+                />
               </div>
               <div className="grid grid-cols-4 gap-4">
                   {[1,2,3,4].map(i => (
                       <div key={i} className="bg-gray-50 rounded-xl overflow-hidden aspect-square border border-gray-100 cursor-pointer hover:ring-2 hover:ring-red-500 transition-all">
-                           <img src={product.image} alt="Thumbnail" className="w-full h-full object-cover opacity-70 hover:opacity-100" />
+                           <img 
+                             src={product.photo_url || '/images/placeholder.jpg'} 
+                             alt="Thumbnail" 
+                             className="w-full h-full object-cover opacity-70 hover:opacity-100"
+                             onError={(e) => {
+                               e.target.src = '/images/placeholder.jpg';
+                             }}
+                           />
                       </div>
                   ))}
               </div>
@@ -71,35 +139,57 @@ const ProductDetail: React.FC = () => {
           {/* Info */}
           <div className="flex flex-col">
             <div className="mb-2">
-                 <span className="text-red-600 font-bold text-xs bg-red-50 px-3 py-1.5 rounded-full uppercase tracking-wider">{product.category}</span>
+                 <span className="text-red-600 font-bold text-xs bg-red-50 px-3 py-1.5 rounded-full uppercase tracking-wider">
+                   {product.category?.name || 'General'}
+                 </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mt-2 mb-4 leading-tight">{product.name}</h1>
             
             <div className="flex items-center mb-6 gap-4">
               <div className="flex text-yellow-400">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={20} fill={i < Math.round(product.rating) ? "currentColor" : "none"} />
+                  <Star key={i} size={20} fill="currentColor" />
                 ))}
               </div>
-              <span className="text-slate-500 text-sm font-medium hover:text-slate-800 cursor-pointer border-b border-dashed border-slate-300">{product.reviews} Verified Reviews</span>
+              <span className="text-slate-500 text-sm font-medium hover:text-slate-800 cursor-pointer border-b border-dashed border-slate-300">0 Verified Reviews</span>
             </div>
 
             <div className="flex items-baseline gap-4 mb-8">
-                <span className="text-4xl font-bold text-slate-900">NPR {product.price.toLocaleString()}</span>
-                <span className="text-slate-400 text-lg line-through decoration-2">NPR {(product.price * 1.2).toFixed(0)}</span>
+                <span className="text-4xl font-bold text-slate-900">NPR {Number(product.price).toLocaleString()}</span>
+                <span className="text-slate-400 text-lg line-through decoration-2">NPR {(Number(product.price) * 1.2).toFixed(0)}</span>
                 <span className="text-green-600 text-sm font-bold bg-green-50 px-2 py-1 rounded">20% OFF</span>
             </div>
 
-            <p className="text-slate-600 text-lg leading-relaxed mb-8">
-              {product.shortDescription}
-            </p>
+            <div className="mb-8">
+              <h3 className="font-bold text-slate-900 mb-2">Description</h3>
+              <p className="text-slate-600 text-lg leading-relaxed">
+                {product.description || 'No description available'}
+              </p>
+            </div>
+
+            <div className="mb-8">
+              <p className="text-slate-600">
+                <span className="font-bold">Brand:</span> {product.brand?.name || 'N/A'}
+              </p>
+              <p className="text-slate-600">
+                <span className="font-bold">Stock:</span> {product.stock > 0 ? `${product.stock} units available` : 'Out of Stock'}
+                {cartItem && cartItem.quantity > 0 && (
+                  <span className="ml-2 text-sm text-blue-600">({cartItem.quantity} in cart)</span>
+                )}
+              </p>
+            </div>
 
             <div className="flex gap-4 mb-10">
               <button 
-                onClick={() => addToCart(product)}
-                className="flex-1 bg-slate-900 text-white py-4 rounded-full font-bold text-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-xl shadow-slate-200"
+                onClick={handleAddToCart}
+                disabled={availableStock <= 0}
+                className={`flex-1 py-4 rounded-full font-bold text-lg transition-all flex items-center justify-center gap-2 shadow-xl shadow-slate-200 ${
+                  availableStock <= 0
+                    ? 'bg-gray-400 text-white cursor-not-allowed' 
+                    : 'bg-slate-900 text-white hover:bg-slate-800'
+                }`}
               >
-                <ShoppingBag size={20} /> Add to Cart
+                <ShoppingBag size={20} /> {availableStock <= 0 ? 'Out of Stock' : 'Add to Cart'}
               </button>
               <button className="p-4 rounded-full border border-gray-200 text-slate-600 hover:bg-slate-50 transition-colors">
                 <Share2 size={24} />

@@ -1,5 +1,5 @@
 // API Base URL
-export const API_BASE_URL = 'http://192.168.1.98:8000/api/v1';
+export const API_BASE_URL = 'http://192.168.100.91:8000/api/v1';
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
   // Cart
   MY_CART: `${API_BASE_URL}/mycart`,
   CART: `${API_BASE_URL}/cart`,
+  CART_UPDATE: (id) => `${API_BASE_URL}/cart/${id}`,
   CHECKOUT: (id) => `${API_BASE_URL}/checkout/${id}`,
 
   // Orders
