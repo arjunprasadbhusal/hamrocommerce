@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import Sidebar from '../Sidebar'
-import LoadingSpinner from '../../../components/LoadingSpinner'
-import { API_ENDPOINTS } from '../../../src/constant/api'
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import Sidebar from '../Sidebar';
+import LoadingSpinner from '../../../components/LoadingSpinner';
+import { API_ENDPOINTS } from '../../../src/constant/api';
 
 const initialNotification = { show: false, message: '', type: 'success' }
 const initialDeleteState = { show: false, id: null, name: '' }
 
-export default function CategoryList() {
+export default function SubcategoryList() {
+  const [subcategories, setSubcategories] = useState([])
   const [categories, setCategories] = useState([])
+  const [selectedCategory, setSelectedCategory] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notification, setNotification] = useState(initialNotification)
@@ -16,10 +18,18 @@ export default function CategoryList() {
 
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
 
   useEffect(() => {
     fetchCategories()
-  }, [])
+    const categoryId = searchParams.get('category')
+    if (categoryId) {
+      setSelectedCategory(categoryId)
+      fetchSubcategoriesByCategory(categoryId)
+    } else {
+      fetchSubcategories()
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (notification.show) {
@@ -35,13 +45,12 @@ export default function CategoryList() {
         message: location.state.message,
         type: location.state.type || 'success',
       })
-      navigate(location.pathname, { replace: true })
+      navigate(location.pathname + location.search, { replace: true, state: {} })
     }
-  }, [location.pathname, location.state, navigate])
+  }, [location.pathname, location.state])
 
   const fetchCategories = async () => {
     try {
-      setLoading(true)
       const token = localStorage.getItem('token')
       const response = await fetch(API_ENDPOINTS.CATEGORIES, {
         headers: {
@@ -49,16 +58,63 @@ export default function CategoryList() {
           'Accept': 'application/json',
         }
       })
+      const data = await response.json()
+      setCategories(data.data || data.categories || [])
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+    }
+  }
+
+  const fetchSubcategories = async () => {
+    try {
+      setLoading(true)
+      const token = localStorage.getItem('token')
+      const response = await fetch(API_ENDPOINTS.SUBCATEGORIES, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        }
+      })
 
       const data = await response.json()
-      const sortedCategories = (data.data || []).sort((a, b) => b.priority - a.priority)
-      setCategories(sortedCategories)
+      setSubcategories(data.subcategories || [])
       setError(null)
     } catch (err) {
-      setError(err.message || 'Failed to load categories')
-      console.error('Error fetching categories:', err)
+      setError(err.message || 'Failed to load subcategories')
+      console.error('Error fetching subcategories:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchSubcategoriesByCategory = async (categoryId) => {
+    try {
+      setLoading(true)
+      const token = localStorage.getItem('token')
+      const response = await fetch(API_ENDPOINTS.SUBCATEGORIES_BY_CATEGORY(categoryId), {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        }
+      })
+
+      const data = await response.json()
+      setSubcategories(data.subcategories || [])
+      setError(null)
+    } catch (err) {
+      setError(err.message || 'Failed to load subcategories')
+      console.error('Error fetching subcategories:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCategoryFilter = (categoryId) => {
+    setSelectedCategory(categoryId)
+    if (categoryId) {
+      navigate(`/admin/subcategories?category=${categoryId}`)
+    } else {
+      navigate('/admin/subcategories')
     }
   }
 
@@ -71,7 +127,7 @@ export default function CategoryList() {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(API_ENDPOINTS.CATEGORY_BY_ID(deleteConfirm.id), {
+      const response = await fetch(API_ENDPOINTS.SUBCATEGORY_BY_ID(deleteConfirm.id), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -82,18 +138,18 @@ export default function CategoryList() {
       const data = await response.json()
 
       if (data.success) {
-        setNotification({ show: true, message: 'Category deleted successfully!', type: 'success' })
-        fetchCategories()
+        setNotification({ show: true, message: 'Subcategory deleted successfully!', type: 'success' })
+        fetchSubcategories()
       } else {
-        throw new Error(data.message || 'Failed to delete category')
+        throw new Error(data.message || 'Failed to delete subcategory')
       }
     } catch (err) {
       setNotification({
         show: true,
-        message: err.message || 'Failed to delete category',
+        message: err.message || 'Failed to delete subcategory',
         type: 'error',
       })
-      console.error('Error deleting product:', err)
+      console.error('Error deleting subcategory:', err)
     } finally {
       setDeleteConfirm(initialDeleteState)
     }
@@ -104,15 +160,15 @@ export default function CategoryList() {
   }
 
   const handleAddNew = () => {
-    navigate('/admin/categories/add')
+    if (selectedCategory) {
+      navigate(`/admin/subcategories/add?category=${selectedCategory}`)
+    } else {
+      navigate('/admin/subcategories/add')
+    }
   }
 
   const handleEdit = (id) => {
-    navigate(`/admin/categories/${id}/edit`)
-  }
-
-  const handleViewSubcategories = (categoryId, categoryName) => {
-    navigate(`/admin/subcategories?category=${categoryId}`)
+    navigate(`/admin/subcategories/${id}/edit`)
   }
 
   if (loading) {
@@ -126,7 +182,7 @@ export default function CategoryList() {
         <div className="flex-1 overflow-auto p-8">
           <div className="bg-red-100 text-red-800 p-4 rounded">
             <p>Error: {error}</p>
-            <button className="mt-2 px-4 py-2 bg-red-600 text-white rounded" onClick={fetchCategories}>
+            <button className="mt-2 px-4 py-2 bg-red-600 text-white rounded" onClick={fetchSubcategories}>
               Retry
             </button>
           </div>
@@ -146,10 +202,31 @@ export default function CategoryList() {
         )}
 
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Categories</h1>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" onClick={handleAddNew}>
-            + Add Category
-          </button>
+          <h1 className="text-3xl font-bold">
+            Subcategories
+            {selectedCategory && categories.length > 0 && (
+              <span className="text-lg text-gray-600 ml-2">
+                - {categories.find(c => c.id == selectedCategory)?.name}
+              </span>
+            )}
+          </h1>
+          <div className="flex gap-3">
+            <select
+              value={selectedCategory}
+              onChange={(e) => handleCategoryFilter(e.target.value)}
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Categories</option>
+              {categories.map(category => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" onClick={handleAddNew}>
+              + Add Subcategory
+            </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -158,43 +235,44 @@ export default function CategoryList() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-gray-200">
-              {categories.length === 0 ? (
+              {subcategories.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
-                    No categories found
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                    No subcategories found
                   </td>
                 </tr>
               ) : (
-                categories.map((category) => (
-                  <tr key={category.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-gray-900">{category.id}</td>
+                subcategories.map((subcategory) => (
+                  <tr key={subcategory.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-gray-900">{subcategory.id}</td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">{category.name}</div>
+                      <div className="font-medium text-gray-900">{subcategory.name}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full">
-                        {category.priority}
+                      <span className={`px-3 py-1 text-sm rounded-full ${subcategory.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {subcategory.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-500">
-                      {new Date(category.created_at).toLocaleDateString()}
+                      {subcategory.slug}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500">
+                      {new Date(subcategory.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
-                        <button className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700" onClick={() => handleViewSubcategories(category.id, category.name)}>
-                          View Subcategories
-                        </button>
-                        <button className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700" onClick={() => handleEdit(category.id)}>
+                        <button className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700" onClick={() => handleEdit(subcategory.id)}>
                           Edit
                         </button>
-                        <button className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700" onClick={() => handleDeleteRequest(category.id, category.name)}>
+                        <button className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700" onClick={() => handleDeleteRequest(subcategory.id, subcategory.name)}>
                           Delete
                         </button>
                       </div>

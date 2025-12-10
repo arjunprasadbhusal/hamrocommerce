@@ -1,21 +1,42 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Sidebar from '../Sidebar'
 import { API_ENDPOINTS } from '../../../src/constant/api'
 
 const initialFormData = {
   name: '',
-  priority: 0,
+  category_id: '',
+  status: 'Active',
 }
 
 const initialNotification = { show: false, message: '', type: 'success' }
 
-export default function AddCategory() {
+export default function AddSubcategory() {
   const [formData, setFormData] = useState(initialFormData)
+  const [categories, setCategories] = useState([])
+  const [selectedCategoryName, setSelectedCategoryName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [notification, setNotification] = useState(initialNotification)
 
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    fetchCategories()
+    const categoryId = searchParams.get('category')
+    if (categoryId) {
+      setFormData(prev => ({ ...prev, category_id: categoryId }))
+    }
+  }, [])
+
+  useEffect(() => {
+    if (formData.category_id && categories.length > 0) {
+      const category = categories.find(cat => cat.id == formData.category_id)
+      if (category) {
+        setSelectedCategoryName(category.name)
+      }
+    }
+  }, [formData.category_id, categories])
 
   useEffect(() => {
     if (notification.show) {
@@ -26,6 +47,27 @@ export default function AddCategory() {
     }
   }, [notification.show])
 
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(API_ENDPOINTS.CATEGORIES, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        }
+      })
+      const data = await response.json()
+      if (data.success) {
+        setCategories(data.categories || [])
+      } else if (data.data) {
+        setCategories(data.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+      setNotification({ show: true, message: 'Failed to load categories', type: 'error' })
+    }
+  }
+
   const handleChange = (event) => {
     const { name, value } = event.target
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -35,7 +77,12 @@ export default function AddCategory() {
     event.preventDefault()
 
     if (!formData.name.trim()) {
-      setNotification({ show: true, message: 'Category name is required', type: 'error' })
+      setNotification({ show: true, message: 'Subcategory name is required', type: 'error' })
+      return
+    }
+
+    if (!formData.category_id) {
+      setNotification({ show: true, message: 'Please select a category', type: 'error' })
       return
     }
 
@@ -43,7 +90,7 @@ export default function AddCategory() {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(API_ENDPOINTS.CATEGORIES, {
+      const response = await fetch(API_ENDPOINTS.SUBCATEGORIES, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -52,28 +99,29 @@ export default function AddCategory() {
         },
         body: JSON.stringify({
           name: formData.name,
-          priority: parseInt(formData.priority) || 0,
+          category_id: parseInt(formData.category_id),
+          status: formData.status,
         })
       })
 
       const data = await response.json()
 
       if (data.success) {
-        navigate('/admin/categories', {
-          state: { message: 'Category added successfully!', type: 'success' },
+        navigate('/admin/subcategories', {
+          state: { message: 'Subcategory added successfully!', type: 'success' },
         })
       } else {
-        throw new Error(data.message || 'Failed to add category')
+        throw new Error(data.message || 'Failed to add subcategory')
       }
     } catch (err) {
-      setNotification({ show: true, message: err.message || 'Failed to add category', type: 'error' })
+      setNotification({ show: true, message: err.message || 'Failed to add subcategory', type: 'error' })
       console.error(err)
     } finally {
       setSubmitting(false)
     }
   }
 
-  const handleCancel = () => navigate('/admin/categories')
+  const handleCancel = () => navigate('/admin/subcategories')
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -86,11 +134,13 @@ export default function AddCategory() {
         )}
 
         <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
-          <h2 className="text-2xl font-bold mb-6">Add New Category</h2>
+          <h2 className="text-2xl font-bold mb-6">Add New Subcategory</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+           
+
             <div>
-              <label className="block text-sm font-medium mb-1">Category Name *</label>
+              <label className="block text-sm font-medium mb-1">Subcategory Name *</label>
               <input 
                 type="text" 
                 name="name" 
@@ -98,22 +148,21 @@ export default function AddCategory() {
                 onChange={handleChange} 
                 required 
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" 
-                placeholder="Enter category name"
+                placeholder="Enter subcategory name"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Priority</label>
-              <input 
-                type="number" 
-                name="priority" 
-                value={formData.priority} 
-                onChange={handleChange} 
-                min="0" 
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" 
-                placeholder="0"
-              />
-              <p className="text-sm text-gray-500 mt-1">Higher priority categories appear first (default: 0)</p>
+              <label className="block text-sm font-medium mb-1">Status</label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -129,7 +178,7 @@ export default function AddCategory() {
                 disabled={submitting} 
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                {submitting ? 'Adding...' : 'Add Category'}
+                {submitting ? 'Adding...' : 'Add Subcategory'}
               </button>
             </div>
           </form>

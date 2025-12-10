@@ -16,6 +16,11 @@ export const API_ENDPOINTS = {
   CATEGORIES: `${API_BASE_URL}/categories`,
   CATEGORY_BY_ID: (id) => `${API_BASE_URL}/categories/${id}`,
 
+  // SubCategories
+  SUBCATEGORIES: `${API_BASE_URL}/subcategories`,
+  SUBCATEGORY_BY_ID: (id) => `${API_BASE_URL}/subcategories/${id}`,
+  SUBCATEGORIES_BY_CATEGORY: (categoryId) => `${API_BASE_URL}/categories/${categoryId}/subcategories`,
+
   // Brands
   BRANDS: `${API_BASE_URL}/brands`,
   BRAND_BY_ID: (id) => `${API_BASE_URL}/brands/${id}`,
@@ -34,6 +39,7 @@ export const API_ENDPOINTS = {
   ORDERS: `${API_BASE_URL}/orders`,
   MY_ORDERS: `${API_BASE_URL}/myorders`,
   ORDER_STATUS: (id, status) => `${API_BASE_URL}/orders/${id}/status/${status}`,
+  ORDER_DELETE: (id) => `${API_BASE_URL}/orders/${id}`,
   ORDER_ESEWA: (cartid) => `${API_BASE_URL}/orders/esewa/${cartid}`,
 
   // Dashboard (Admin)

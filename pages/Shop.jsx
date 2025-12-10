@@ -6,11 +6,11 @@ import { API_ENDPOINTS } from '../src/constant/api';
 
 const Shop = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedBrand, setSelectedBrand] = useState('All');
+  const [selectedSubCategory, setSelectedSubCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,19 +20,19 @@ const Shop = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [productsRes, categoriesRes, brandsRes] = await Promise.all([
+      const [productsRes, categoriesRes, subcategoriesRes] = await Promise.all([
         fetch(API_ENDPOINTS.PRODUCTS),
         fetch(API_ENDPOINTS.CATEGORIES),
-        fetch(API_ENDPOINTS.BRANDS)
+        fetch(API_ENDPOINTS.SUBCATEGORIES)
       ]);
 
       const productsData = await productsRes.json();
       const categoriesData = await categoriesRes.json();
-      const brandsData = await brandsRes.json();
+      const subcategoriesData = await subcategoriesRes.json();
 
       setProducts(productsData.data || []);
       setCategories(categoriesData.data || []);
-      setBrands(brandsData.data || []);
+      setSubcategories(subcategoriesData.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -43,11 +43,25 @@ const Shop = () => {
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
       const matchesCategory = selectedCategory === 'All' || product.category_id === parseInt(selectedCategory);
-      const matchesBrand = selectedBrand === 'All' || product.brand_id === parseInt(selectedBrand);
+      const matchesSubCategory = selectedSubCategory === 'All' || product.subcategory_id === parseInt(selectedSubCategory);
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesBrand && matchesSearch;
+      return matchesCategory && matchesSubCategory && matchesSearch;
     });
-  }, [products, selectedCategory, selectedBrand, searchQuery]);
+  }, [products, selectedCategory, selectedSubCategory, searchQuery]);
+
+  // Filter subcategories based on selected category
+  const filteredSubcategories = useMemo(() => {
+    if (selectedCategory === 'All') {
+      return subcategories;
+    }
+    return subcategories.filter(sub => sub.category_id === parseInt(selectedCategory));
+  }, [subcategories, selectedCategory]);
+
+  // Reset subcategory when category changes
+  const handleCategoryChange = (categoryId) => {
+    setSelectedCategory(categoryId);
+    setSelectedSubCategory('All');
+  };
 
   return (
     <div>
@@ -89,7 +103,7 @@ const Shop = () => {
               <h3 className="text-sm font-semibold text-slate-700 mb-3">Categories</h3>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => setSelectedCategory('All')}
+                  onClick={() => handleCategoryChange('All')}
                   className={`px-5 py-2.5 rounded-full whitespace-nowrap text-sm font-semibold transition-all shadow-sm ${
                     selectedCategory === 'All' 
                       ? 'bg-red-600 text-white shadow-red-200' 
@@ -101,7 +115,7 @@ const Shop = () => {
                 {categories.map(cat => (
                   <button
                     key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id.toString())}
+                    onClick={() => handleCategoryChange(cat.id.toString())}
                     className={`px-5 py-2.5 rounded-full whitespace-nowrap text-sm font-semibold transition-all shadow-sm ${
                       selectedCategory === cat.id.toString() 
                         ? 'bg-red-600 text-white shadow-red-200' 
@@ -114,35 +128,37 @@ const Shop = () => {
               </div>
             </div>
 
-            {/* Brand Filter */}
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold text-slate-700 mb-3">Brands</h3>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setSelectedBrand('All')}
-                  className={`px-5 py-2.5 rounded-full whitespace-nowrap text-sm font-semibold transition-all shadow-sm ${
-                    selectedBrand === 'All' 
-                      ? 'bg-blue-600 text-white shadow-blue-200' 
-                      : 'bg-white border border-gray-200 text-slate-700 hover:border-blue-300 hover:text-blue-600'
-                  }`}
-                >
-                  All Brands
-                </button>
-                {brands.map(brand => (
+            {/* Subcategory Filter - Only show if category is selected */}
+            {selectedCategory !== 'All' && filteredSubcategories.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">Subcategories</h3>
+                <div className="flex flex-wrap gap-2">
                   <button
-                    key={brand.id}
-                    onClick={() => setSelectedBrand(brand.id.toString())}
+                    onClick={() => setSelectedSubCategory('All')}
                     className={`px-5 py-2.5 rounded-full whitespace-nowrap text-sm font-semibold transition-all shadow-sm ${
-                      selectedBrand === brand.id.toString() 
-                        ? 'bg-blue-600 text-white shadow-blue-200' 
-                        : 'bg-white border border-gray-200 text-slate-700 hover:border-blue-300 hover:text-blue-600'
+                      selectedSubCategory === 'All' 
+                        ? 'bg-purple-600 text-white shadow-purple-200' 
+                        : 'bg-white border border-gray-200 text-slate-700 hover:border-purple-300 hover:text-purple-600'
                     }`}
                   >
-                    {brand.name}
+                    All Subcategories
                   </button>
-                ))}
+                  {filteredSubcategories.map(subcat => (
+                    <button
+                      key={subcat.id}
+                      onClick={() => setSelectedSubCategory(subcat.id.toString())}
+                      className={`px-5 py-2.5 rounded-full whitespace-nowrap text-sm font-semibold transition-all shadow-sm ${
+                        selectedSubCategory === subcat.id.toString() 
+                          ? 'bg-purple-600 text-white shadow-purple-200' 
+                          : 'bg-white border border-gray-200 text-slate-700 hover:border-purple-300 hover:text-purple-600'
+                      }`}
+                    >
+                      {subcat.name}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">

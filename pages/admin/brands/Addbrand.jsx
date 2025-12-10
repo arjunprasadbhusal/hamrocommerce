@@ -78,7 +78,7 @@ export default function AddBrand() {
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
-      <div className="flex-1 overflow-auto ml-64 p-8">
+      <div className="flex-1 overflow-auto p-8">
         {notification.show && (
           <div className={`mb-4 p-4 rounded ${notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
             {notification.message}

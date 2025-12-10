@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import Sidebar from '../Sidebar'
-import { API_ENDPOINTS } from '../../../src/constant/api'
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import Sidebar from '../Sidebar';
+import LoadingSpinner from '../../../components/LoadingSpinner';
+import { API_ENDPOINTS } from '../../../src/constant/api';
 
 const initialNotification = { show: false, message: '', type: 'success' }
 const initialDeleteState = { show: false, id: null, name: '' }
@@ -110,21 +111,14 @@ export default function ProductList() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-screen bg-gray-100">
-        <Sidebar />
-        <div className="flex-1 overflow-auto ml-64 p-8 flex items-center justify-center">
-          <div className="text-xl">Loading products...</div>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner />;
   }
 
   if (error) {
     return (
       <div className="flex h-screen bg-gray-100">
         <Sidebar />
-        <div className="flex-1 overflow-auto ml-64 p-8">
+        <div className="flex-1 overflow-auto p-8">
           <div className="bg-red-100 text-red-800 p-4 rounded">
             <p>Error: {error}</p>
             <button className="mt-2 px-4 py-2 bg-red-600 text-white rounded" onClick={fetchProducts}>
@@ -139,7 +133,7 @@ export default function ProductList() {
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
-      <div className="flex-1 overflow-auto ml-64 p-8">
+      <div className="flex-1 overflow-auto p-8">
         {notification.show && (
           <div className={`mb-4 p-4 rounded ${notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
             {notification.message}
@@ -162,7 +156,7 @@ export default function ProductList() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Brand</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subcategory</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
@@ -201,7 +195,7 @@ export default function ProductList() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-900">{product.category?.name || 'N/A'}</td>
-                    <td className="px-6 py-4 text-gray-900">{product.brand?.name || 'N/A'}</td>
+                    <td className="px-6 py-4 text-gray-900">{product.subcategory?.name || 'N/A'}</td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
                         <button className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700" onClick={() => handleEdit(product.id)}>

@@ -1,8 +1,9 @@
 
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import Sidebar from '../Sidebar'
-import { API_ENDPOINTS } from '../../../src/constant/api'
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import Sidebar from '../Sidebar';
+import LoadingSpinner from '../../../components/LoadingSpinner';
+import { API_ENDPOINTS } from '../../../src/constant/api';
 
 const initialFormData = {
   name: '',
@@ -107,20 +108,13 @@ export default function EditCategory() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-screen bg-gray-100">
-        <Sidebar />
-        <div className="flex-1 overflow-auto ml-64 p-8 flex items-center justify-center">
-          <div className="text-xl">Loading...</div>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner />;
   }
 
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
-      <div className="flex-1 overflow-auto ml-64 p-8">
+      <div className="flex-1 overflow-auto p-8">
         {notification.show && (
           <div className={`mb-4 p-4 rounded ${notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
             {notification.message}

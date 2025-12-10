@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 interface DashboardStats {
   totalProducts: number;
@@ -25,6 +26,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [minLoadingTime, setMinLoadingTime] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -34,9 +36,20 @@ const Dashboard = () => {
     }
 
     fetchDashboardData(token);
+    
+    // Enforce minimum 1 second, maximum 3 seconds loading time
+    const minTimer = setTimeout(() => {
+      setMinLoadingTime(false);
+    }, 1000);
+
+    return () => clearTimeout(minTimer);
   }, [navigate]);
 
   const fetchDashboardData = async (token: string) => {
+    const maxLoadingTimer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
     try {
       const response = await fetch('http://192.168.100.91:8000/api/v1/dashboard', {
         headers: {
@@ -48,6 +61,7 @@ const Dashboard = () => {
       if (response.status === 401 || response.status === 403) {
         localStorage.removeItem('token');
         navigate('/login');
+        clearTimeout(maxLoadingTimer);
         return;
       }
 
@@ -58,28 +72,21 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
+      clearTimeout(maxLoadingTimer);
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-screen">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-xl">Loading...</div>
-        </div>
-      </div>
-    );
+  if (loading || minLoadingTime) {
+    return <LoadingSpinner />;
   }
 
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
       
-      <div className="flex-1 overflow-auto ml-64">
-        <div className="p-8">
-          <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+      <div className="flex-1 overflow-auto p-8">
+        <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -205,7 +212,6 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-    </div>
   );
 };
 

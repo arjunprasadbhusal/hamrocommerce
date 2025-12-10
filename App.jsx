@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import Layout from './components/Layout';
+import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
@@ -21,6 +22,9 @@ import EditProduct from './pages/admin/Products/EditProduct';
 import EditCategory from './pages/admin/categories/EditCategory';
 import CategoryList from './pages/admin/categories/CategoryList';
 import AddCategory from './pages/admin/categories/AddCategory';
+import SubcategoryList from './pages/admin/subcategory/SubcategoryList';
+import AddSubcategory from './pages/admin/subcategory/AddSubcategory';
+import EditSubcategory from './pages/admin/subcategory/EditSubcategory';
 import BrandList from './pages/admin/brands/BrandList';
 import AddBrand from './pages/admin/brands/Addbrand';
 import EditBrand from './pages/admin/brands/EditBrand';
@@ -33,6 +37,7 @@ const App = () => {
   return (
     <CartProvider>
       <Router>
+        <ScrollToTop />
         <Routes>
           {/* Public Routes with Layout */}
           <Route path="/" element={<Layout><Home /></Layout>} />
@@ -59,6 +64,10 @@ const App = () => {
           <Route path="/admin/categories" element={<CategoryList />} />
           <Route path="/admin/categories/add" element={<AddCategory />} />
           <Route path="/admin/categories/:id/edit" element={<EditCategory />} />
+
+          <Route path="/admin/subcategories" element={<SubcategoryList />} />
+          <Route path="/admin/subcategories/add" element={<AddSubcategory />} />
+          <Route path="/admin/subcategories/:id/edit" element={<EditSubcategory />} />  
 
           <Route path="/admin/brands" element={<BrandList />} />
           <Route path="/admin/brands/add" element={<AddBrand />} />

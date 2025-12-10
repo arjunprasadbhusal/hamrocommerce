@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from '../Sidebar'
+import LoadingSpinner from '../../../components/LoadingSpinner'
 import { API_ENDPOINTS } from '../../../src/constant/api'
 
 const initialNotification = { show: false, message: '', type: 'success' }
@@ -111,21 +112,14 @@ export default function BrandList() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-screen bg-gray-100">
-        <Sidebar />
-        <div className="flex-1 overflow-auto ml-64 p-8 flex items-center justify-center">
-          <div className="text-xl">Loading brands...</div>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner />;
   }
 
   if (error) {
     return (
       <div className="flex h-screen bg-gray-100">
         <Sidebar />
-        <div className="flex-1 overflow-auto ml-64 p-8">
+        <div className="flex-1 overflow-auto p-8">
           <div className="bg-red-100 text-red-800 p-4 rounded">
             <p>Error: {error}</p>
             <button className="mt-2 px-4 py-2 bg-red-600 text-white rounded" onClick={fetchBrands}>
@@ -140,7 +134,7 @@ export default function BrandList() {
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
-      <div className="flex-1 overflow-auto ml-64 p-8">
+      <div className="flex-1 overflow-auto p-8">
         {notification.show && (
           <div className={`mb-4 p-4 rounded ${notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
             {notification.message}

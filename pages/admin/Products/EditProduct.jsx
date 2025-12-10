@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import Sidebar from '../Sidebar'
-import { API_ENDPOINTS } from '../../../src/constant/api'
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import Sidebar from '../Sidebar';
+import LoadingSpinner from '../../../components/LoadingSpinner';
+import { API_ENDPOINTS } from '../../../src/constant/api';
 
 const initialFormData = {
   name: '',
@@ -9,7 +10,7 @@ const initialFormData = {
   price: '',
   stock: '',
   category_id: '',
-  brand_id: '',
+  subcategory_id: '',
 }
 
 const initialNotification = { show: false, message: '', type: 'success' }
@@ -22,15 +23,27 @@ export default function EditProduct() {
   const [photoFile, setPhotoFile] = useState(null)
   const [photoPreview, setPhotoPreview] = useState('')
   const [categories, setCategories] = useState([])
-  const [brands, setBrands] = useState([])
+  const [subcategories, setSubcategories] = useState([])
+  const [filteredSubcategories, setFilteredSubcategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [notification, setNotification] = useState(initialNotification)
 
   useEffect(() => {
-    fetchCategoriesAndBrands()
+    fetchCategoriesAndSubcategories()
     loadProduct()
   }, [id])
+
+  useEffect(() => {
+    if (formData.category_id) {
+      const filtered = subcategories.filter(sub => sub.category_id === parseInt(formData.category_id))
+      console.log('Selected category:', formData.category_id)
+      console.log('Filtered subcategories:', filtered)
+      setFilteredSubcategories(filtered)
+    } else {
+      setFilteredSubcategories([])
+    }
+  }, [formData.category_id, subcategories])
 
   useEffect(() => {
     if (notification.show) {
@@ -39,23 +52,25 @@ export default function EditProduct() {
     }
   }, [notification.show])
 
-  const fetchCategoriesAndBrands = async () => {
+  const fetchCategoriesAndSubcategories = async () => {
     try {
       const token = localStorage.getItem('token')
-      const [catResponse, brandResponse] = await Promise.all([
+      const [catResponse, subCatResponse] = await Promise.all([
         fetch(API_ENDPOINTS.CATEGORIES, {
           headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
         }),
-        fetch(API_ENDPOINTS.BRANDS, {
+        fetch(API_ENDPOINTS.SUBCATEGORIES, {
           headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
         })
       ])
       const catData = await catResponse.json()
-      const brandData = await brandResponse.json()
+      const subCatData = await subCatResponse.json()
+      console.log('Categories:', catData.data)
+      console.log('Subcategories:', subCatData.data)
       setCategories(catData.data || [])
-      setBrands(brandData.data || [])
+      setSubcategories(subCatData.data || [])
     } catch (err) {
-      console.error('Failed to load categories/brands:', err)
+      console.error('Failed to load categories/subcategories:', err)
     }
   }
 
@@ -78,7 +93,7 @@ export default function EditProduct() {
           price: product.price || '',
           stock: product.stock || '',
           category_id: product.category_id || '',
-          brand_id: product.brand_id || '',
+          subcategory_id: product.subcategory_id || '',
         })
         setPhotoPreview(product.photo_url || '')
       } else {
@@ -94,6 +109,12 @@ export default function EditProduct() {
 
   const handleChange = (e) => {
     const { name, value } = e.target
+    
+    if (name === "category_id") {
+      setFormData({ ...formData, category_id: value, subcategory_id: '' })
+      return
+    }
+    
     setFormData({ ...formData, [name]: value })
   }
 
@@ -139,7 +160,7 @@ export default function EditProduct() {
       form.append('price', formData.price)
       form.append('stock', formData.stock)
       if (formData.category_id) form.append('category_id', formData.category_id)
-      if (formData.brand_id) form.append('brand_id', formData.brand_id)
+      if (formData.subcategory_id) form.append('subcategory_id', formData.subcategory_id)
       if (photoFile) form.append('photopath', photoFile)
       form.append('_method', 'PUT')
 
@@ -170,20 +191,13 @@ export default function EditProduct() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-screen bg-gray-100">
-        <Sidebar />
-        <div className="flex-1 overflow-auto ml-64 p-8 flex items-center justify-center">
-          <div className="text-xl">Loading...</div>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner />;
   }
 
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
-      <div className="flex-1 overflow-auto ml-64 p-8">
+      <div className="flex-1 overflow-auto p-8">
         {notification.show && (
           <div className={`mb-4 p-4 rounded ${notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
             {notification.message}
@@ -219,10 +233,10 @@ export default function EditProduct() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Brand</label>
-                <select name="brand_id" value={formData.brand_id} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                  <option value="">Select Brand</option>
-                  {brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
+                <label className="block text-sm font-medium mb-1">Subcategory</label>
+                <select name="subcategory_id" value={formData.subcategory_id} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" disabled={!formData.category_id}>
+                  <option value="">{formData.category_id ? 'Select Subcategory' : 'Select Category First'}</option>
+                  {filteredSubcategories.map(subcat => <option key={subcat.id} value={subcat.id}>{subcat.name}</option>)}
                 </select>
               </div>
 

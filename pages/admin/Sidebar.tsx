@@ -91,7 +91,7 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="bg-gray-900 text-white w-64 min-h-screen flex flex-col fixed left-0 top-0 bottom-0 overflow-y-auto">
+    <div className="bg-gray-900 text-white w-64 min-h-screen flex flex-col fixed left-0 top-0 bottom-0 overflow-y-auto z-40 lg:static">
       {/* Logo */}
       <div className="p-6 border-b border-gray-700">
         <h1 className="text-2xl font-bold">Admin Panel</h1>
