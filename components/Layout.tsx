@@ -10,8 +10,20 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const { cartCount } = useCart();
   const location = useLocation();
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        setUser(JSON.parse(userData));
+      } catch (e) {
+        console.error('Failed to parse user data');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -101,10 +113,31 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 )}
               </Link>
 
-              <Link to="/login" className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-full text-sm font-semibold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 hover:shadow-slate-300 active:scale-95">
-                <User size={16} />
-                <span>Login</span>
-              </Link>
+              {user ? (
+                <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full text-sm">
+                  <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-slate-900 text-xs leading-tight">{user.name || 'User'}</span>
+                    <button 
+                      onClick={() => {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        window.location.href = '/login';
+                      }}
+                      className="text-[10px] text-red-600 hover:underline text-left"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <Link to="/login" className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-full text-sm font-semibold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 hover:shadow-slate-300 active:scale-95">
+                  <User size={16} />
+                  <span>Login</span>
+                </Link>
+              )}
 
               <button 
                 className="md:hidden p-2 ml-1 text-slate-800 rounded-lg hover:bg-gray-100 transition-colors"

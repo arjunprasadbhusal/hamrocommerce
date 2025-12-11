@@ -1,11 +1,152 @@
-import React from 'react';
-import { useCart } from '../context/CartContext';
+import React, { useState, useEffect } from 'react';
 import { Trash2, Plus, Minus, ArrowRight, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '../src/constant/api';
 
 const Cart = () => {
-  const { cart, removeFromCart, updateQuantity, cartTotal, clearCart } = useCart();
+  const [cart, setCart] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchCart();
+  }, []);
+
+  const fetchCart = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(API_ENDPOINTS.MY_CART, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setCart(data.carts);
+      }
+    } catch (error) {
+      console.error('Error fetching cart:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateQuantity = async (cartId, newQuantity) => {
+    if (newQuantity < 1) return;
+
+    const token = localStorage.getItem('token');
+    setUpdating(true);
+    
+    try {
+      const response = await fetch(API_ENDPOINTS.CART_UPDATE(cartId), {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ quantity: newQuantity })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Update local state immediately for better UX
+        setCart(prevCart => 
+          prevCart.map(item => 
+            item.id === cartId 
+              ? { ...item, quantity: newQuantity }
+              : item
+          )
+        );
+      } else {
+        alert(data.message || 'Failed to update quantity');
+        await fetchCart(); // Refresh to get correct state
+      }
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      alert('Failed to update quantity');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const removeFromCart = async (cartId) => {
+    const token = localStorage.getItem('token');
+    
+    try {
+      const response = await fetch(API_ENDPOINTS.CART, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ dataid: cartId })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Remove from local state immediately
+        setCart(prevCart => prevCart.filter(item => item.id !== cartId));
+      } else {
+        alert(data.message || 'Failed to remove item');
+      }
+    } catch (error) {
+      console.error('Error removing item:', error);
+      alert('Failed to remove item');
+    }
+  };
+
+  const clearCart = async () => {
+    if (!confirm('Are you sure you want to clear your cart?')) return;
+    
+    const token = localStorage.getItem('token');
+    setUpdating(true);
+
+    try {
+      for (const item of cart) {
+        await fetch(API_ENDPOINTS.CART, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ dataid: item.id })
+        });
+      }
+      setCart([]);
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      alert('Failed to clear cart');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Calculate total from cart data
+  const cartTotal = cart.reduce((total, item) => {
+    return total + (parseFloat(item.product.price) * item.quantity);
+  }, 0);
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-24 text-center">
+        <div className="animate-spin w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full mx-auto"></div>
+        <p className="mt-4 text-slate-600">Loading your cart...</p>
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (
@@ -39,8 +180,8 @@ const Cart = () => {
               {/* Fixed size image for mobile responsiveness */}
               <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0">
                  <img 
-                   src={item.photo_url || item.image || '/images/placeholder.jpg'} 
-                   alt={item.name} 
+                   src={item.product.photo_url || '/images/placeholder.jpg'} 
+                   alt={item.product.name} 
                    className="w-full h-full object-cover"
                    onError={(e) => {
                      e.target.src = '/images/placeholder.jpg';
@@ -53,13 +194,14 @@ const Cart = () => {
                   <div className="flex justify-between items-start">
                     <div>
                         <span className="text-[10px] md:text-xs font-semibold text-red-600 uppercase tracking-wider">
-                          {item.category?.name || item.category || 'Product'}
+                          {item.product.category?.name || 'Product'}
                         </span>
-                        <h3 className="font-bold text-base md:text-lg text-slate-900 mt-1 line-clamp-2">{item.name}</h3>
+                        <h3 className="font-bold text-base md:text-lg text-slate-900 mt-1 line-clamp-2">{item.product.name}</h3>
                     </div>
                     <button 
                         onClick={() => removeFromCart(item.id)}
                         className="text-slate-300 hover:text-red-500 transition-colors p-1"
+                        disabled={updating}
                     >
                         <Trash2 size={18} />
                     </button>
@@ -68,15 +210,15 @@ const Cart = () => {
                 
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between mt-2 md:mt-4 gap-3 sm:gap-0">
                   <div className="font-bold text-lg md:text-xl text-slate-900">
-                    NPR {(parseFloat(item.price) * item.quantity).toLocaleString()} 
+                    NPR {(parseFloat(item.product.price) * item.quantity).toLocaleString()} 
                     <span className="text-xs font-normal text-slate-400 block">
-                      NPR {parseFloat(item.price).toLocaleString()} / each
+                      NPR {parseFloat(item.product.price).toLocaleString()} / each
                     </span>
-                    {item.stock !== undefined && (
+                    {item.product.stock !== undefined && (
                       <span className={`text-xs font-semibold block mt-1 ${
-                        item.quantity >= item.stock ? 'text-red-600' : 'text-gray-500'
+                        item.quantity >= item.product.stock ? 'text-red-600' : 'text-gray-500'
                       }`}>
-                        {item.quantity >= item.stock ? `Max stock reached (${item.stock})` : `${item.stock} available`}
+                        {item.quantity >= item.product.stock ? `Max stock reached (${item.product.stock})` : `${item.product.stock} available`}
                       </span>
                     )}
                   </div>
@@ -85,7 +227,7 @@ const Cart = () => {
                     <button 
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
                       className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm hover:text-red-600 disabled:opacity-50"
-                      disabled={item.quantity <= 1}
+                      disabled={item.quantity <= 1 || updating}
                     >
                       <Minus size={14} />
                     </button>
@@ -93,8 +235,8 @@ const Cart = () => {
                     <button 
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
                       className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={item.stock !== undefined && item.quantity >= item.stock}
-                      title={item.stock !== undefined && item.quantity >= item.stock ? `Only ${item.stock} units available` : ''}
+                      disabled={updating || (item.product.stock !== undefined && item.quantity >= item.product.stock)}
+                      title={item.product.stock !== undefined && item.quantity >= item.product.stock ? `Only ${item.product.stock} units available` : ''}
                     >
                       <Plus size={14} />
                     </button>
@@ -105,7 +247,11 @@ const Cart = () => {
           ))}
           
           <div className="flex justify-end">
-            <button onClick={clearCart} className="text-sm text-red-600 hover:text-red-700 hover:underline font-medium">
+            <button 
+              onClick={clearCart} 
+              className="text-sm text-red-600 hover:text-red-700 hover:underline font-medium"
+              disabled={updating}
+            >
                 Remove all items
             </button>
           </div>

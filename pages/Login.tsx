@@ -50,6 +50,7 @@ const Login: React.FC = () => {
 
       if (data.success && data.token) {
         localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('userEmail', data.user.email);
         
         // Check if user is admin

@@ -97,7 +97,7 @@ const ProductDetail = () => {
   };
 
   // Calculate available stock considering cart quantity
-  const cartItem = cart.find(item => item.id === product?.id);
+  const cartItem = cart.find(item => item.product_id === product?.id || item.product?.id === product?.id);
   const availableStock = product ? product.stock - (cartItem?.quantity || 0) : 0;
 
   return (

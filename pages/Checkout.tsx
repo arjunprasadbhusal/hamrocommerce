@@ -52,7 +52,7 @@ const Checkout = () => {
   // Calculate total for selected items only
   const selectedTotal = cart
     .filter(item => selectedItems[item.id])
-    .reduce((acc, item) => acc + item.price * item.quantity, 0);
+    .reduce((acc, item) => acc + (parseFloat(item.product?.price || item.price) * item.quantity), 0);
   
   const selectedCount = Object.values(selectedItems).filter(Boolean).length;
 
@@ -90,8 +90,8 @@ const Checkout = () => {
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
-            product_id: item.id,
-            price: item.price,
+            product_id: item.product?.id || item.product_id || item.id,
+            price: parseFloat(item.product?.price || item.price),
             quantity: item.quantity,
             payment_method: formData.paymentMethod,
             name: formData.name,
@@ -121,9 +121,9 @@ const Checkout = () => {
           totalItems: itemsToOrder.length,
           totalAmount: selectedTotal,
           items: itemsToOrder.map(item => ({
-            name: item.name,
+            name: item.product?.name || item.name,
             quantity: item.quantity,
-            price: item.price
+            price: parseFloat(item.product?.price || item.price)
           }))
         };
         
@@ -310,18 +310,18 @@ const Checkout = () => {
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded bg-gray-100 overflow-hidden">
                                         <img 
-                                          src={item.photo_url || item.image || '/images/placeholder.jpg'} 
+                                          src={item.product?.photo_url || item.photo_url || item.image || '/images/placeholder.jpg'} 
                                           alt="" 
                                           className="w-full h-full object-cover"
                                         />
                                     </div>
                                     <div>
-                                        <span className="text-slate-900 font-medium block">{item.name}</span>
+                                        <span className="text-slate-900 font-medium block">{item.product?.name || item.name}</span>
                                         <span className="text-slate-500 text-xs">Qty: {item.quantity}</span>
                                     </div>
                                 </div>
                                 <span className={`text-slate-900 font-semibold ${!selectedItems[item.id] ? 'opacity-40' : ''}`}>
-                                  NPR {(item.price * item.quantity).toLocaleString()}
+                                  NPR {((parseFloat(item.product?.price || item.price)) * item.quantity).toLocaleString()}
                                 </span>
                             </div>
                         </div>

@@ -20,9 +20,8 @@ export const API_ENDPOINTS = {
   BRANDS: `${API_BASE_URL}/brands`,
   BRAND_DETAIL: (id: number) => `${API_BASE_URL}/brands/${id}`,
 
-  // Companies
-  COMPANIES: `${API_BASE_URL}/companies`,
-  COMPANY_DETAIL: (id: number) => `${API_BASE_URL}/companies/${id}`,
+
+ 
 
   // Cart
   MY_CART: `${API_BASE_URL}/mycart`,

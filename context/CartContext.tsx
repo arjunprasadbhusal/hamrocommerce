@@ -65,7 +65,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (data.success && data.carts) {
         // Transform backend cart format to frontend format
         const transformedCart = data.carts.map((item: any) => ({
-          id: item.product.id,
+          id: item.id, // This is the cart ID, not product ID
+          product_id: item.product.id,
           name: item.product.name,
           price: parseFloat(item.product.price),
           photo_url: item.product.photo_url,
@@ -74,8 +75,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           quantity: item.quantity,
           category: item.product.category,
           brand: item.product.brand,
-          description: item.product.description,
-          cartId: item.id // Store cart ID for deletion
+          description: item.product.description
         }));
         setCart(transformedCart);
       }
@@ -171,20 +171,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const token = localStorage.getItem('token');
     
     if (!token) {
-      // Local cart
-      setCart((prev) => prev.filter((item) => item.id !== productId));
+      // Local cart - productId is the product ID
+      setCart((prev) => prev.filter((item) => item.product_id !== productId));
       return;
     }
 
-    // Backend cart
-    const cartItem = cart.find(item => item.id === productId);
-    
-    // If no cartId, just remove from local state (for items added locally)
-    if (!cartItem || !cartItem.cartId) {
-      setCart((prev) => prev.filter((item) => item.id !== productId));
-      return;
-    }
-
+    // Backend cart - productId is actually the cart item ID
     try {
       setLoading(true);
       const response = await fetch(API_ENDPOINTS.CART, {
@@ -195,25 +187,23 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          dataid: cartItem.cartId
+          dataid: productId // This is the cart ID
         })
       });
 
       const data = await response.json();
       
       if (data.success) {
-        // Remove from local state
-        setCart((prev) => prev.filter((item) => item.id !== productId));
+        // Refresh cart from backend
+        await fetchCart();
         console.log('Item removed from cart');
       } else {
-        // Still remove from local state even if backend fails
-        setCart((prev) => prev.filter((item) => item.id !== productId));
-        console.error('Backend removal failed but removed locally:', data.message);
+        console.error('Failed to remove item:', data.message);
+        alert(data.message || 'Failed to remove item from cart');
       }
     } catch (error) {
       console.error('Error removing from cart:', error);
-      // Still remove from local state even if API fails
-      setCart((prev) => prev.filter((item) => item.id !== productId));
+      alert('Failed to remove item from cart');
     } finally {
       setLoading(false);
     }
@@ -223,13 +213,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (quantity < 1) return;
     
     const token = localStorage.getItem('token');
-    const cartItem = cart.find(item => item.id === productId);
     
     if (!token) {
       // Guest users: update localStorage
       setCart((prev) =>
         prev.map((item) => {
-          if (item.id === productId) {
+          if (item.product_id === productId) {
             if (item.stock !== undefined && quantity > item.stock) {
               alert(`Sorry, only ${item.stock} units available in stock`);
               return item;
@@ -242,15 +231,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
-    // Logged-in users: use API
-    if (!cartItem || !cartItem.cartId) {
-      console.error('Cart item not found or missing cartId');
-      return;
-    }
-
+    // Logged-in users: productId is the cart item ID
     try {
       setLoading(true);
-      const response = await fetch(API_ENDPOINTS.CART_UPDATE(cartItem.cartId), {
+      const response = await fetch(API_ENDPOINTS.CART_UPDATE(productId), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -281,7 +265,35 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = async () => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      setCart([]);
+      return;
+    }
+
+    // For logged-in users, delete all cart items
+    try {
+      setLoading(true);
+      for (const item of cart) {
+        await fetch(API_ENDPOINTS.CART, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ dataid: item.id })
+        });
+      }
+      await fetchCart();
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const cartTotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);

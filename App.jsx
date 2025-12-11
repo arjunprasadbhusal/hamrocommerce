@@ -30,6 +30,9 @@ import AddBrand from './pages/admin/brands/Addbrand';
 import EditBrand from './pages/admin/brands/EditBrand';
 import OrderList from './pages/admin/orders/OrderList';
 import OrderInformation from './pages/admin/orders/OrderInformation';
+import VedioList from './pages/admin/vedios/VedioList';
+import AddVedio from './pages/admin/vedios/AddVedio';
+import EditVedio from './pages/admin/vedios/EditVedio';
 
 import AIChatAssistant from './components/AIChatAssistant';
 
@@ -75,6 +78,10 @@ const App = () => {
 
           <Route path="/admin/orders" element={<OrderList />} />
           <Route path="/admin/orders/:id" element={<OrderInformation />} />
+
+          <Route path="/admin/vedios" element={<VedioList />} />
+          <Route path="/admin/vedios/add" element={<AddVedio />} />
+          <Route path="/admin/vedios/:id/edit" element={<EditVedio />} />
         </Routes>
         {/* Floating AI Assistant available on all pages */}
         <AIChatAssistant />

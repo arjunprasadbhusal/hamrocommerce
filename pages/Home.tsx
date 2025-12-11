@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -12,9 +12,34 @@ import {
 
 import { PRODUCTS } from "../constants";
 import ProductCard from "../components/ProductCard";
+import { API_ENDPOINTS } from "../src/constant/api";
 
 const Home = () => {
   const featuredProducts = PRODUCTS.slice(0, 4);
+  const [vedios, setVedios] = useState([]);
+
+  useEffect(() => {
+    fetchVedios();
+  }, []);
+
+  const fetchVedios = async () => {
+    try {
+      console.log('Fetching videos from:', API_ENDPOINTS.VEDIOS_ACTIVE);
+      const response = await fetch(API_ENDPOINTS.VEDIOS_ACTIVE);
+      console.log('Response status:', response.status);
+      const data = await response.json();
+      console.log('Videos response:', data);
+      if (data.success && data.data) {
+        setVedios(data.data);
+        console.log('Videos loaded:', data.data);
+        if (data.data.length > 0) {
+          console.log('First video URL:', data.data[0].vedio_full_url);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch videos:', error);
+    }
+  };
 
   const categories = [
     {
@@ -138,11 +163,26 @@ const Home = () => {
 
             {/* Hero Image */}
             <div className="relative flex justify-center lg:justify-end">
-              <img
-                src="/images/home.jpg"
-                alt="Nepali Cultural Heritage"
-                className="rounded-3xl shadow-2xl w-full max-w-lg lg:max-w-2xl object-cover border-8 border-white/90"
-              />
+              {vedios.length > 0 && vedios[0].vedio_full_url ? (
+                <video
+                  src={`http://192.168.100.91:8000${vedios[0].vedio_full_url}`}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  controls
+                  className="rounded-3xl shadow-2xl w-full max-w-lg lg:max-w-2xl object-cover border-8 border-white/90"
+                  style={{ height: '400px' }}
+                  onError={(e) => console.error('Video load error:', e)}
+                  onLoadedData={() => console.log('Video loaded successfully')}
+                />
+              ) : (
+                <img
+                  src="/images/home.jpg"
+                  alt="Nepali Cultural Heritage"
+                  className="rounded-3xl shadow-2xl w-full max-w-lg lg:max-w-2xl object-cover border-8 border-white/90"
+                />
+              )}
 
               {/* Floating Badge */}
               <div className="absolute -left-6 top-20 bg-white p-4 rounded-2xl shadow-xl border animate-bounce">

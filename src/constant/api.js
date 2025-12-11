@@ -47,4 +47,11 @@ export const API_ENDPOINTS = {
   DASHBOARD_SALES: `${API_BASE_URL}/dashboard/sales`,
   DASHBOARD_USERS: `${API_BASE_URL}/dashboard/users`,
   DASHBOARD_PRODUCTS: `${API_BASE_URL}/dashboard/products`,
+
+  // Videos
+  VEDIOS: `${API_BASE_URL}/vedios`,
+  VEDIOS_ACTIVE: `${API_BASE_URL}/vedios/active`,
+  VEDIO_BY_ID: (id) => `${API_BASE_URL}/vedios/${id}`,
+  VEDIO_UPDATE_STATUS: (id) => `${API_BASE_URL}/vedios/${id}/status`,
+  VEDIO_UPDATE_PRIORITY: (id) => `${API_BASE_URL}/vedios/${id}/priority`,
 };
